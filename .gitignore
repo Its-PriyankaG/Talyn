@@ -1,0 +1,73 @@
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+.python-version
+
+# =========================
+# Node / NextJS
+# =========================
+node_modules/
+.next/
+out/
+dist/
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# =========================
+# Temporary / uploads
+# =========================
+tmp/
+temp/
+*.pdf
+
+# =========================
+# MongoDB / local data
+# =========================
+data/
+dump/
+
+# =========================
+# Docker
+# =========================
+*.pid
+docker-compose.override.yml
+
+# =========================
+# Coverage / tests
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
