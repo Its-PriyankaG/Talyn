@@ -1,4 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
-class CreateSessionRequest(BaseModel):
-    role: str
+class SessionCreateRequest(BaseModel):
+    verification_id: str
+    display_name: str
+    email: EmailStr
+    role: Optional[str] = None

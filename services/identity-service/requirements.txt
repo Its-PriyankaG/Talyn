@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pymongo
+python-dotenv
+requests
+uuid
+azure-ai-vision-face

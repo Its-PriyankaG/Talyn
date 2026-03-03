@@ -32,6 +32,7 @@ Candidate background (anonymized):
 Generate 10 to 15 practical, problem-solving interview questions.
 Rules:
 - At least 3 to 5 questions must probe decisions made in the GitHub projects
+- Add atleast 3 HR/Softskills questions at the end
 - Avoid textbook questions
 - Focus on tradeoffs, debugging, and real-world reasoning
 
