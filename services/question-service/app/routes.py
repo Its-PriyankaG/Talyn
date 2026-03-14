@@ -29,3 +29,16 @@ def generate(payload: QuestionRequest):
         "session_id": payload.session_id,
         "questions": questions
     }
+
+@router.get("/{session_id}")
+def get_questions(session_id: str):
+
+    doc = db.questions.find_one({"session_id": session_id})
+
+    if not doc:
+        return {"questions": []}
+
+    return {
+        "session_id": session_id,
+        "questions": doc["questions"]
+    }

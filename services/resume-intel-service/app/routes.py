@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form
 import tempfile
 import os
-
+import requests
 from .db import db
 from .pdf_reader import extract_text_from_pdf
 from .extractor import extract_resume
@@ -38,6 +38,16 @@ def ingest_resume(
             "github_url": github_url,
             "github_signal": github_signal
         })
+
+        requests.post(
+            "http://localhost:8004/questions/generate",
+            json={
+                "session_id": session_id,
+                "role": "Backend Intern",
+                "anonymized_resume": anonymized,
+                "github_signal": github_signal
+            }
+        )
 
         return {
             "session_id": session_id,

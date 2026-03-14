@@ -63,7 +63,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error || "Failed to generate questions");
   
       // Redirect instead of rendering questions
-      router.push(`/interview?session_id=${data.session_id}`);
+      router.push(`/interview?session_id=${sessionId}`);
     } catch (err: any) {
       setError(err.message);
     } finally {

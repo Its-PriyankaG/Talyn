@@ -1,15 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from .routes import router
 
-load_dotenv()
-
-app = FastAPI(title="Talyn Question Generation Service")
+app = FastAPI(title="Talyn Interview Service")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # during development
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
