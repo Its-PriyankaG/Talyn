@@ -8,7 +8,11 @@ from .utils import generate_reference_id
 
 router = APIRouter(prefix="/interview", tags=["interview"])
 
-
+@router.post("/proctor-log")
+def log_proctor_event(payload: dict):
+    db.proctor_logs.insert_one(payload)
+    return {"status": "logged"}
+    
 @router.post("/response")
 def save_response(payload: ResponsePayload):
 
@@ -49,34 +53,31 @@ def complete_interview(payload: CompleteInterviewPayload):
     )
 
     if not interview_doc:
-
         return {
             "status": "error",
             "message": "Interview session not found"
         }
 
-    responses = interview_doc.get("responses", [])
+    existing = db.interview_results.find_one(
+        {"session_id": session_id}
+    )
+
+    if existing:
+        return {
+            "status": "already_completed",
+            "reference_id": existing["reference_id"]
+        }
 
     reference_id = generate_reference_id()
 
     db.interview_results.insert_one({
-
         "session_id": session_id,
-
         "reference_id": reference_id,
-
-        "responses": responses,
-
         "created_at": datetime.utcnow(),
-
         "evaluation_status": "pending"
-
     })
 
     return {
-
         "status": "completed",
-
         "reference_id": reference_id
-
     }

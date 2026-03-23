@@ -5,7 +5,7 @@
   import { motion, AnimatePresence } from "framer-motion";
   import { Loader2 } from "lucide-react";
   import VoiceRecorder from "@/app/components/VoiceRecorder";
-
+  import Proctor from "@/app/components/Proctor";
   type Question = { question: string; rationale: string };
 
   /* ─── Icons ─── */
@@ -372,7 +372,7 @@
         <div className="iv-page">
           <div className="talyn-glow-1" />
           <div className="talyn-glow-2" />
-
+          {sessionId && <Proctor sessionId={sessionId} />}
           {/* Loading */}
           {loading && (
             <div className="iv-center">

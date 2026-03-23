@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-
 type Evaluation = {
   reference_id: string;
   final_score: number;
@@ -11,6 +10,8 @@ type Evaluation = {
   evaluation_status: string;
   scores: Record<string, number>;
   comments: Record<string, string>;
+  candidate_name: string;
+  candidate_email: string;
 };
 
 /* ─── Score arc SVG ─── */
@@ -45,9 +46,7 @@ function ScoreArc({ score, max = 10 }: { score: number; max?: number }) {
           <stop offset="100%" stopColor={color}/>
         </linearGradient>
       </defs>
-      {/* Track */}
       <path d={pathD(startA, trackEnd, true)} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="10" strokeLinecap="round"/>
-      {/* Fill */}
       {pct > 0 && (
         <path
           d={pathD(startA, endA, pct > 0.5)}
@@ -58,7 +57,6 @@ function ScoreArc({ score, max = 10 }: { score: number; max?: number }) {
           filter="url(#arcGlow)"
         />
       )}
-      {/* Score text */}
       <text x={cx} y={cy - 6} textAnchor="middle" fill="#ededed"
         style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, fontWeight: 700 }}>
         {score}
@@ -67,7 +65,6 @@ function ScoreArc({ score, max = 10 }: { score: number; max?: number }) {
         style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase" }}>
         / 10
       </text>
-      {/* Tick dot at end */}
       {pct > 0 && (
         <circle cx={arc(endA).x} cy={arc(endA).y} r="5" fill={color}
           style={{ filter: `drop-shadow(0 0 6px ${glow})` }}/>
@@ -118,26 +115,21 @@ function RadarChart({ scores }: { scores: Record<string, number> }) {
           <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.05"/>
         </radialGradient>
       </defs>
-      {/* Rings */}
       {rings.map(v => (
         <polygon key={v} points={polygonPts(v / 10)} fill="none"
           stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
       ))}
-      {/* Spokes */}
       {keys.map((_, i) => (
         <line key={i} x1={cx} y1={cy}
           x2={cx + r * Math.cos(angleOf(i))} y2={cy + r * Math.sin(angleOf(i))}
           stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
       ))}
-      {/* Value area */}
       <polygon points={polyVal} fill="url(#radarFill)"
         stroke="#22d3ee" strokeWidth="1.5" strokeOpacity="0.7"/>
-      {/* Dots */}
       {valuePts.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#22d3ee"
           style={{ filter: "drop-shadow(0 0 5px rgba(34,211,238,0.6))" }}/>
       ))}
-      {/* Labels */}
       {keys.map((k, i) => {
         const angle = angleOf(i);
         const lx = cx + (r + 22) * Math.cos(angle);
@@ -185,6 +177,7 @@ export default function HRResultPage() {
   const { reference_id } = useParams();
   const [data, setData]       = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [proctorLogs, setProctorLogs] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -197,7 +190,13 @@ export default function HRResultPage() {
     })();
   }, [reference_id]);
 
-  /* ── Loading ── */
+  useEffect(() => {
+    if (!reference_id) return;
+    fetch(`http://localhost:8006/evaluation/proctor/${reference_id}`)
+      .then(res => res.json())
+      .then(setProctorLogs);
+  }, [reference_id]);
+
   if (loading) return (
     <>
       <style>{loadingStyle}</style>
@@ -251,14 +250,20 @@ export default function HRResultPage() {
 
           {/* ── HEADER ── */}
           <motion.div variants={rise} className="hr-header">
-            <div>
+            <div className="hr-header-left">
               <p className="t-label" style={{ marginBottom: 6 }}>Candidate Evaluation Report</p>
-              <h1 className="hr-page-title">
-                {data.reference_id}
-              </h1>
+              <h1 className="hr-page-title">{data.candidate_name || "Unknown"}</h1>
+              <p className="hr-ref-id">{data.reference_id}</p>
             </div>
-            <div className="hr-decision-badge" style={{ background: ds.bg, color: ds.color, boxShadow: ds.glow }}>
-              {data.final_decision}
+
+            <div className="hr-header-right">
+              <div className="hr-candidate-card">
+                <p className="hr-candidate-meta">Contact</p>
+                <p className="hr-candidate-email">{data.candidate_email || "No email available"}</p>
+              </div>
+              <div className="hr-decision-badge" style={{ background: ds.bg, color: ds.color, boxShadow: ds.glow }}>
+                {data.final_decision}
+              </div>
             </div>
           </motion.div>
 
@@ -266,10 +271,10 @@ export default function HRResultPage() {
           <motion.div variants={rise} className="hr-kpi-row">
             {[
               { label: "Final Score",  value: data.final_score?.toString() ?? "—", unit: "/ 10" },
-              { label: "Avg Category", value: avgScore,                   unit: "/ 10" },
-              { label: "Top Skill",    value: labelOf(String(topSkill[0])),       unit: `${topSkill[1]}/10` },
-              { label: "Needs Work",   value: labelOf(String(lowSkill[0])),       unit: `${lowSkill[1]}/10` },
-              { label: "Status",       value: data.evaluation_status,     unit: "" },
+              { label: "Avg Category", value: avgScore,                             unit: "/ 10" },
+              { label: "Top Skill",    value: labelOf(String(topSkill[0])),         unit: `${topSkill[1]}/10` },
+              { label: "Needs Work",   value: labelOf(String(lowSkill[0])),         unit: `${lowSkill[1]}/10` },
+              { label: "Status",       value: data.evaluation_status,               unit: "" },
             ].map(k => (
               <div key={k.label} className="hr-kpi">
                 <p className="t-label" style={{ marginBottom: 6 }}>{k.label}</p>
@@ -279,13 +284,28 @@ export default function HRResultPage() {
             ))}
           </motion.div>
 
+          {/* ── PROCTOR ALERTS ── */}
+          <motion.div variants={rise}>
+            <p className="t-label" style={{ marginBottom: 10 }}>Proctoring Alerts</p>
+            <div className="talyn-console hr-proctor-card">
+              {proctorLogs.length === 0 ? (
+                <p className="hr-proctor-empty">✓ No violations detected</p>
+              ) : (
+                proctorLogs.map((log, idx) => (
+                  <div key={idx} className="hr-proctor-row">
+                    <p className="hr-proctor-violation">⚠ {log.violation} · Faces detected: {log.face_count}</p>
+                    <p className="hr-proctor-time">{new Date(log.timestamp).toLocaleString()}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+
           {/* ── MAIN GRID ── */}
           <div className="hr-main-grid">
 
             {/* Left col */}
             <div className="hr-left-col">
-
-              {/* Score arc card */}
               <motion.div variants={rise} className="talyn-console hr-arc-card">
                 <div className="hr-arc-inner">
                   <div>
@@ -303,20 +323,16 @@ export default function HRResultPage() {
                 </div>
               </motion.div>
 
-              {/* Radar chart card */}
               <motion.div variants={rise} className="talyn-console hr-radar-card">
                 <p className="t-label" style={{ padding: "20px 24px 0" }}>Skill Radar</p>
                 <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 16px" }}>
                   <RadarChart scores={scores} />
                 </div>
               </motion.div>
-
             </div>
 
             {/* Right col */}
             <div className="hr-right-col">
-
-              {/* Score breakdown */}
               <motion.div variants={rise} className="talyn-console hr-breakdown-card">
                 <p className="t-label" style={{ padding: "20px 24px 16px" }}>Score Breakdown</p>
                 <div className="hr-breakdown-list">
@@ -335,7 +351,6 @@ export default function HRResultPage() {
                 </div>
               </motion.div>
 
-              {/* Score grid */}
               <motion.div variants={rise} className="hr-score-grid">
                 {scoreEntries.map(([key, val]) => {
                   const c = getColor(key);
@@ -350,7 +365,6 @@ export default function HRResultPage() {
                   );
                 })}
               </motion.div>
-
             </div>
           </div>
 
@@ -406,66 +420,124 @@ const base = `
     background: var(--bg);
     font-family: var(--font-body);
     position: relative;
-    padding: 48px 24px 64px;
+    padding: 52px 32px 80px;
     overflow-x: hidden;
   }
   .hr-wrap {
     position: relative; z-index: 2;
-    max-width: 1100px; margin: 0 auto;
-    display: flex; flex-direction: column; gap: 28px;
+    max-width: 1120px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 24px;
   }
 
-  /* Header */
+  /* ── Header ── */
   .hr-header {
-    display: flex; align-items: flex-start;
-    justify-content: space-between; gap: 20px;
-    flex-wrap: wrap;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
   }
+  @media(max-width: 680px) { .hr-header { flex-direction: column; } }
+
+  .hr-header-left { flex: 1; min-width: 0; }
+
+  .hr-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  @media(max-width: 680px) { .hr-header-right { align-items: flex-start; } }
+
   .hr-page-title {
     font-family: var(--font-display);
-    font-weight: 700; font-size: clamp(28px, 5vw, 44px);
-    letter-spacing: -0.03em; line-height: 1;
+    font-weight: 700;
+    font-size: clamp(26px, 4vw, 42px);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
     color: var(--text-primary);
-  }
-  .hr-decision-badge {
-    font-family: var(--font-mono);
-    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-    padding: 8px 20px; border-radius: 999px;
-    border: 1px solid currentColor;
-    opacity: 0.9;
+    margin-top: 4px;
   }
 
-  /* KPI Row */
+  .hr-candidate-card {
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    text-align: right;
+  }
+  @media(max-width: 680px) { .hr-candidate-card { text-align: left; } }
+
+  .hr-ref-id {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.12em;
+    color: var(--text-muted); margin-top: 8px;
+  }
+  .hr-candidate-meta {
+    font-family: var(--font-mono);
+    font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 5px;
+  }
+  .hr-candidate-email {
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--text-muted); margin-top: 3px;
+  }
+
+  .hr-decision-badge {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 7px 18px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+
+  /* ── KPI Row ── */
   .hr-kpi-row {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 14px;
+    gap: 12px;
   }
   @media(max-width: 800px) { .hr-kpi-row { grid-template-columns: repeat(3, 1fr); } }
-  @media(max-width: 520px) { .hr-kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  @media(max-width: 480px) { .hr-kpi-row { grid-template-columns: repeat(2, 1fr); } }
+
   .hr-kpi {
-    padding: 16px 18px; border-radius: 16px;
+    padding: 16px 18px; border-radius: 14px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
   }
   .hr-kpi-val {
     font-family: var(--font-display);
-    font-weight: 700; font-size: 20px;
-    color: var(--text-primary); line-height: 1;
+    font-weight: 700; font-size: 19px;
+    color: var(--text-primary); line-height: 1.1;
     letter-spacing: -0.02em;
     text-transform: capitalize;
+    word-break: break-word;
   }
   .hr-kpi-unit {
     font-family: var(--font-mono);
     font-size: 9px; letter-spacing: 0.12em;
+    color: var(--text-muted); margin-top: 4px;
+  }
+
+  /* ── Proctor card ── */
+  .hr-proctor-card { padding: 16px 20px; }
+  .hr-proctor-empty {
+    font-family: var(--font-mono); font-size: 12px;
+    color: rgba(52,211,153,0.7); letter-spacing: 0.05em;
+  }
+  .hr-proctor-row { margin-bottom: 12px; }
+  .hr-proctor-row:last-child { margin-bottom: 0; }
+  .hr-proctor-violation { color: #fb7185; font-size: 13px; line-height: 1.5; }
+  .hr-proctor-time {
+    font-family: var(--font-mono); font-size: 10px;
     color: var(--text-muted); margin-top: 3px;
   }
 
-  /* Main grid */
+  /* ── Main grid ── */
   .hr-main-grid {
     display: grid;
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 320px 1fr;
     gap: 20px;
+    align-items: start;
   }
   @media(max-width: 900px) { .hr-main-grid { grid-template-columns: 1fr; } }
 
@@ -488,9 +560,8 @@ const base = `
   .hr-radar-card { overflow: hidden; }
 
   /* Breakdown */
-  .hr-breakdown-card { }
-  .hr-breakdown-list { padding: 0 24px 20px; display: flex; flex-direction: column; gap: 16px; }
-  .hr-breakdown-row  { display: flex; flex-direction: column; gap: 7px; }
+  .hr-breakdown-list { padding: 0 24px 22px; display: flex; flex-direction: column; gap: 16px; }
+  .hr-breakdown-row  { display: flex; flex-direction: column; gap: 8px; }
   .hr-breakdown-top  { display: flex; justify-content: space-between; align-items: center; }
   .hr-breakdown-key  {
     font-family: var(--font-body); font-size: 13px; font-weight: 500;
@@ -501,21 +572,21 @@ const base = `
 
   /* Score grid */
   .hr-score-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
   }
   @media(max-width: 600px) { .hr-score-grid { grid-template-columns: repeat(2, 1fr); } }
   .hr-score-tile {
-    padding: 14px 16px; border-radius: 14px;
+    padding: 14px 16px; border-radius: 12px;
     background: rgba(255,255,255,0.025);
     border: 1px solid transparent;
-    transition: all 0.25s ease;
+    transition: background 0.2s ease;
   }
   .hr-score-tile:hover { background: rgba(255,255,255,0.05); }
   .hr-score-tile-top  { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
   .hr-score-dot       { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .hr-score-tile-label {
-    font-family: var(--font-mono); font-size: 9px;
-    letter-spacing: 0.12em; text-transform: uppercase;
+    font-family: var(--font-mono); font-size: 8.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
     color: var(--text-muted); line-height: 1.3;
   }
   .hr-score-tile-val {
@@ -547,7 +618,7 @@ const base = `
   }
   .hr-feedback-text {
     font-family: var(--font-body); font-size: 13px; font-weight: 300;
-    color: rgba(180,200,230,0.62); line-height: 1.7;
+    color: rgba(180,200,230,0.62); line-height: 1.75;
   }
 `;
 
