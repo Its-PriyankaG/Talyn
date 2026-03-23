@@ -1,26 +1,371 @@
-@import "tailwindcss";
+/* ═══════════════════════════════════════════════════════════════
+   TALYN — Global Design System
+   Import once in app/layout.tsx:  import "./globals.css"
+   ═══════════════════════════════════════════════════════════════ */
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400&display=swap');
+   @import "tailwindcss";
+   
+   /* ── Reset ── */
+   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+   html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+   
+   /* ── CSS Variables ── */
+   :root {
+     /* Fonts */
+     --font-display: 'Cormorant Garamond', serif;
+     --font-body:    'Plus Jakarta Sans', sans-serif;
+     --font-mono:    'IBM Plex Mono', monospace;
+   
+     /* Background */
+     --bg:           #0a0a0a;
+     --bg-surface:   rgba(255,255,255,0.03);
+     --bg-console:   rgba(0,0,0,0.40);
+   
+     /* Text */
+     --text-primary:   #ededed;
+     --text-secondary: rgba(200,215,235,0.60);
+     --text-tertiary:  rgba(180,200,230,0.50);
+     --text-muted:     rgba(140,160,200,0.35);
+     --text-white:     #ffffff;
+   
+     /* Accents */
+     --cyan:           #22d3ee;
+     --cyan-dim:       rgba(34,211,238,0.08);
+     --cyan-border:    rgba(34,211,238,0.22);
+     --violet:         #a78bfa;
+     --violet-dim:     rgba(124,58,237,0.08);
+     --violet-border:  rgba(124,58,237,0.24);
+   
+     /* Ambient glow colors (match identity page exactly) */
+     --glow-cyan:   #0891b2;
+     --glow-violet: #7c3aed;
+   
+     /* Glass */
+     --glass-bg:      rgba(255,255,255,0.04);
+     --glass-bg-h:    rgba(255,255,255,0.07);
+     --glass-border:  rgba(255,255,255,0.10);
+     --glass-border-h:rgba(255,255,255,0.17);
+     --glass-blur:    50px;
+     --glass-shadow:  0 25px 60px rgba(0,0,0,0.50), 0 1px 0 rgba(255,255,255,0.06) inset;
+   
+     /* Spacing */
+     --gap-xs: 8px;  --gap-sm: 14px; --gap-md: 20px;
+     --gap-lg: 28px; --gap-xl: 40px;
+   
+     /* Radius */
+     --r-sm: 10px; --r-md: 16px; --r-lg: 24px; --r-xl: 36px;
+   
+     /* Easing */
+     --ease: cubic-bezier(0.22, 1, 0.36, 1);
+   }
+   
+   /* ── Base ── */
+   body {
+     font-family: var(--font-body);
+     background: var(--bg);
+     color: var(--text-primary);
+     min-height: 100vh;
+     overflow-x: hidden;
+   }
+   
+   /* ════════════════════════════════
+      AMBIENT GLOW SYSTEM
+      Add .talyn-bg to root element
+      ════════════════════════════════ */
+   .talyn-glow-1 {
+     position: fixed; top: -10%; right: -5%;
+     height: 600px; width: 600px; border-radius: 50%;
+     background: var(--glow-cyan); opacity: 0.20; filter: blur(120px);
+     pointer-events: none; z-index: 0;
+     animation: glowDrift 20s ease-in-out infinite;
+   }
+   .talyn-glow-2 {
+     position: fixed; bottom: -10%; left: -10%;
+     height: 600px; width: 600px; border-radius: 50%;
+     background: var(--glow-violet); opacity: 0.20; filter: blur(140px);
+     pointer-events: none; z-index: 0;
+     animation: glowDrift 26s ease-in-out infinite reverse;
+   }
+   @keyframes glowDrift {
+     0%,100% { transform: translate(0,0)       scale(1);    }
+     40%      { transform: translate(24px,-40px) scale(1.06); }
+     70%      { transform: translate(-30px,28px) scale(0.96); }
+   }
+   
+   /* ════════════════════════════════
+      GLASS CONSOLE
+      .talyn-console
+      ════════════════════════════════ */
+   .talyn-console {
+     border-radius: var(--r-xl);
+     border: 1px solid var(--glass-border);
+     background: var(--bg-console);
+     backdrop-filter: blur(var(--glass-blur));
+     -webkit-backdrop-filter: blur(var(--glass-blur));
+     box-shadow: var(--glass-shadow);
+     position: relative; overflow: hidden;
+   }
+   .talyn-console::before {
+     content: '';
+     position: absolute; top: 0; left: 0; right: 0; height: 1px;
+     background: linear-gradient(90deg,
+       transparent 0%, rgba(255,255,255,0.12) 30%,
+       rgba(34,211,238,0.14) 50%, rgba(255,255,255,0.12) 70%, transparent 100%
+     );
+     pointer-events: none;
+   }
+   
+   /* ════════════════════════════════
+      GLASS CARD (generic surface)
+      ════════════════════════════════ */
+   .talyn-card {
+     background: var(--glass-bg);
+     border: 1px solid var(--glass-border);
+     border-radius: var(--r-lg);
+     transition: background 0.28s var(--ease), border-color 0.28s var(--ease),
+                 transform 0.28s var(--ease), box-shadow 0.28s var(--ease);
+     position: relative; overflow: hidden;
+   }
+   .talyn-card::before {
+     content: '';
+     position: absolute; top: 0; left: 16px; right: 16px; height: 1px;
+     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+     pointer-events: none;
+   }
+   .talyn-card:hover {
+     background: var(--glass-bg-h);
+     border-color: var(--glass-border-h);
+     transform: translateY(-2px);
+     box-shadow: 0 10px 32px rgba(0,0,0,0.38);
+   }
+   
+   /* Tinted variants */
+   .talyn-card-cyan:hover  { border-color: var(--cyan-border);   box-shadow: 0 10px 32px rgba(0,0,0,0.38), 0 0 48px rgba(34,211,238,0.05); }
+   .talyn-card-violet:hover{ border-color: var(--violet-border); box-shadow: 0 10px 32px rgba(0,0,0,0.38), 0 0 48px rgba(124,58,237,0.06); }
+   .talyn-card-cyan::after, .talyn-card-violet::after {
+     content: ''; position: absolute; inset: 0; border-radius: inherit;
+     opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
+   }
+   .talyn-card-cyan::after   { background: radial-gradient(ellipse at 50% 120%, rgba(34,211,238,0.07)  0%, transparent 65%); }
+   .talyn-card-violet::after { background: radial-gradient(ellipse at 50% 120%, rgba(124,58,237,0.08) 0%, transparent 65%); }
+   .talyn-card-cyan:hover::after, .talyn-card-violet:hover::after { opacity: 1; }
+   
+   /* ════════════════════════════════
+      ICON BOX
+      ════════════════════════════════ */
+   .talyn-icon-box {
+     display: flex; align-items: center; justify-content: center;
+     border-radius: 13px; flex-shrink: 0;
+     background: rgba(255,255,255,0.05);
+     border: 1px solid rgba(255,255,255,0.09);
+     transition: all 0.28s var(--ease);
+   }
+   .talyn-card-cyan:hover  .talyn-icon-box { background: var(--cyan-dim);   border-color: var(--cyan-border);   }
+   .talyn-card-violet:hover .talyn-icon-box{ background: var(--violet-dim); border-color: var(--violet-border); }
+   
+   /* ════════════════════════════════
+      TYPOGRAPHY
+      ════════════════════════════════ */
+   .t-display {
+     font-family: var(--font-display);
+     font-weight: 700;
+     letter-spacing: -0.03em;
+     line-height: 1;
+     color: var(--text-primary);
+   }
+   .t-heading {
+     font-family: var(--font-display);
+     font-weight: 600;
+     letter-spacing: -0.02em;
+     line-height: 1.15;
+     color: var(--text-primary);
+   }
+   .t-body     { font-family: var(--font-body);  font-weight: 400; line-height: 1.65; color: var(--text-secondary); }
+   .t-caption  { font-family: var(--font-mono);  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); }
+   .t-label    { font-family: var(--font-mono);  font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); }
+   
+   /* Gradient logo text */
+   .t-logo-gradient {
+     background: linear-gradient(180deg, #ffffff 0%, #ffffff 45%, rgba(255,255,255,0.48) 100%);
+     -webkit-background-clip: text;
+     -webkit-text-fill-color: transparent;
+     background-clip: text;
+     filter: drop-shadow(0 0 28px rgba(255,255,255,0.07));
+   }
+   
+   /* ════════════════════════════════
+      BADGE / PILL
+      ════════════════════════════════ */
+   .talyn-badge {
+     display: inline-flex; align-items: center; gap: 8px;
+     padding: 5px 16px 5px 10px; border-radius: 999px;
+     background: rgba(255,255,255,0.05);
+     border: 1px solid var(--glass-border);
+     backdrop-filter: blur(12px);
+     font-family: var(--font-mono);
+     font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+     color: var(--text-secondary);
+   }
+   .talyn-badge-dot {
+     width: 6px; height: 6px; border-radius: 50%;
+     background: var(--cyan);
+     box-shadow: 0 0 8px rgba(34,211,238,0.75);
+     animation: talynPulse 2.4s ease-in-out infinite;
+   }
+   @keyframes talynPulse {
+     0%,100% { opacity: 0.5; transform: scale(1);   }
+     50%      { opacity: 1;   transform: scale(1.4); }
+   }
+   
+   /* ════════════════════════════════
+      STAT BAR
+      ════════════════════════════════ */
+   .talyn-stats {
+     display: flex; align-items: center; justify-content: center;
+     gap: clamp(20px, 5vw, 52px);
+     padding: 14px 28px; border-radius: var(--r-md);
+     background: rgba(255,255,255,0.03);
+     border: 1px solid rgba(255,255,255,0.06);
+   }
+   .talyn-stat-val { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
+   .talyn-stat-sup { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); vertical-align: super; }
+   .talyn-stat-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); margin-top: 4px; }
+   .talyn-stat-sep { width: 1px; height: 32px; background: rgba(255,255,255,0.07); flex-shrink: 0; }
+   
+   /* ════════════════════════════════
+      CHIPS ROW
+      ════════════════════════════════ */
+   .talyn-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+   .talyn-chip {
+     display: inline-flex; align-items: center; gap: 6px;
+     padding: 5px 14px; border-radius: var(--r-sm);
+     background: rgba(255,255,255,0.04);
+     border: 1px solid rgba(255,255,255,0.07);
+     font-family: var(--font-body); font-size: 11px; font-weight: 500;
+     color: var(--text-tertiary);
+     transition: all 0.22s ease;
+   }
+   .talyn-chip:hover { background: rgba(255,255,255,0.07); border-color: rgba(34,211,238,0.16); color: rgba(200,220,250,0.78); }
+   .talyn-chip-icon { color: var(--cyan); }
+   
+   /* ════════════════════════════════
+      DIVIDER
+      ════════════════════════════════ */
+   .talyn-divider {
+     height: 1px;
+     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+   }
+   
+   /* ════════════════════════════════
+      FOOTER
+      ════════════════════════════════ */
+   .talyn-footer { display: flex; align-items: center; gap: 14px; }
+   .talyn-footer-line { height: 1px; width: 44px; background: rgba(255,255,255,0.08); }
+   .talyn-footer-text {
+     font-family: var(--font-mono);
+     font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+     color: var(--text-white);
+     white-space: nowrap;
+   }
+   
+   /* ════════════════════════════════
+      UPLOAD ZONE
+      ════════════════════════════════ */
+   .talyn-upload-zone {
+     position: relative; border-radius: var(--r-md);
+     border: 1px dashed rgba(34,211,238,0.28);
+     background: rgba(34,211,238,0.03);
+     padding: 28px 20px; text-align: center; cursor: pointer;
+     transition: all 0.3s ease; overflow: hidden;
+   }
+   .talyn-upload-zone:hover { border-color: rgba(34,211,238,0.5); background: rgba(34,211,238,0.06); }
+   .talyn-upload-zone.has-file { border-color: rgba(34,211,238,0.45); background: rgba(34,211,238,0.06); }
+   .talyn-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+   
+   /* ════════════════════════════════
+      CAMERA VIEW
+      ════════════════════════════════ */
+   .talyn-camera-wrap {
+     border-radius: var(--r-md); overflow: hidden;
+     border: 1px solid rgba(255,255,255,0.09);
+     background: rgba(0,0,0,0.3); position: relative; aspect-ratio: 16/9;
+   }
+   .talyn-camera-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+   .talyn-bracket { position: absolute; width: 20px; height: 20px; border-color: rgba(34,211,238,0.45); border-style: solid; }
+   .talyn-bracket-tl { top: 10px; left: 10px;  border-width: 1.5px 0 0 1.5px; border-radius: 3px 0 0 0; }
+   .talyn-bracket-tr { top: 10px; right: 10px; border-width: 1.5px 1.5px 0 0; border-radius: 0 3px 0 0; }
+   .talyn-bracket-bl { bottom: 10px; left: 10px;  border-width: 0 0 1.5px 1.5px; border-radius: 0 0 0 3px; }
+   .talyn-bracket-br { bottom: 10px; right: 10px; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 3px 0; }
+   
+   /* ════════════════════════════════
+      BUTTONS
+      ════════════════════════════════ */
+   .talyn-btn {
+     width: 100%; padding: 14px;
+     border-radius: var(--r-md);
+     font-family: var(--font-body); font-size: 14px; font-weight: 500;
+     cursor: pointer; transition: all 0.25s var(--ease);
+     display: flex; align-items: center; justify-content: center; gap: 8px;
+     border: none;
+   }
+   .talyn-btn-ghost {
+     background: rgba(255,255,255,0.04);
+     border: 1px solid rgba(255,255,255,0.09);
+     color: var(--text-secondary);
+   }
+   .talyn-btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); }
+   .talyn-btn-primary {
+     background: linear-gradient(135deg, rgba(34,211,238,0.16) 0%, rgba(8,145,178,0.14) 100%);
+     border: 1px solid rgba(34,211,238,0.32);
+     color: rgba(34,211,238,0.90);
+     box-shadow: 0 4px 20px rgba(34,211,238,0.10);
+   }
+   .talyn-btn-primary:not(:disabled):hover { background: linear-gradient(135deg, rgba(34,211,238,0.24) 0%, rgba(8,145,178,0.20) 100%); border-color: rgba(34,211,238,0.50); transform: translateY(-2px); box-shadow: 0 6px 28px rgba(34,211,238,0.18); }
+   .talyn-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+   
+   /* ════════════════════════════════
+      ERROR BOX
+      ════════════════════════════════ */
+   .talyn-error {
+     border-radius: var(--r-md); padding: 13px 16px;
+     background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.18);
+     font-family: var(--font-body); font-size: 13px;
+     color: rgba(252,165,165,0.85); text-align: center;
+   }
+   
+   /* ════════════════════════════════
+      STEP TRACKER (identity page)
+      ════════════════════════════════ */
+   .talyn-steps {
+     display: flex; align-items: center;
+     padding: 14px 22px; border-radius: var(--r-md);
+     background: rgba(255,255,255,0.03);
+     border: 1px solid rgba(255,255,255,0.07);
+     backdrop-filter: blur(16px);
+   }
+   .talyn-step-line      { flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+   .talyn-step-line-done { background: linear-gradient(90deg, rgba(34,211,238,0.45), rgba(34,211,238,0.18)); }
+   
+   /* ════════════════════════════════
+      ANIMATIONS
+      ════════════════════════════════ */
+   @keyframes talynSpin { to { transform: rotate(360deg); } }
+   .talyn-spin { animation: talynSpin 1s linear infinite; }
+   
+   @keyframes talynFadeUp {
+     from { opacity: 0; transform: translateY(18px); }
+     to   { opacity: 1; transform: translateY(0); }
+   }
+   
+   /* ════════════════════════════════
+      SCROLLBAR
+      ════════════════════════════════ */
+   ::-webkit-scrollbar       { width: 5px; }
+   ::-webkit-scrollbar-track { background: var(--bg); }
+   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 99px; }
+   
+   /* ════════════════════════════════
+      FOCUS
+      ════════════════════════════════ */
+   *:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }

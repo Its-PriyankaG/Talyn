@@ -1,237 +1,259 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Sparkles, ShieldCheck, Loader2 } from "lucide-react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useRef } from "react";
 
-export default function IdentityPage() {
+/* ─── Tilt Card ─── */
+function TiltCard({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mx = useMotionValue(0), my = useMotionValue(0);
+  const sx = useSpring(mx, { stiffness: 150, damping: 20 });
+  const sy = useSpring(my, { stiffness: 150, damping: 20 });
+  const rotX = useTransform(sy, [-0.5, 0.5], ["5deg", "-5deg"]);
+  const rotY = useTransform(sx, [-0.5, 0.5], ["-5deg", "5deg"]);
+  return (
+    <motion.div
+      ref={ref}
+      style={{ rotateX: rotX, rotateY: rotY, transformStyle: "preserve-3d" }}
+      onMouseMove={e => {
+        const r = ref.current!.getBoundingClientRect();
+        mx.set((e.clientX - r.left) / r.width - 0.5);
+        my.set((e.clientY - r.top) / r.height - 0.5);
+      }}
+      onMouseLeave={() => { mx.set(0); my.set(0); }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ─── Icons ─── */
+const IcoUser = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+const IcoBriefcase = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/>
+    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+    <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+  </svg>
+);
+const IcoArrow = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <path d="M3 8h10M9 4l4 4-4 4"/>
+  </svg>
+);
+const IcoSparkles = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
+    <path d="M19 3l.75 2.25L22 6l-2.25.75L19 9l-.75-2.25L16 6l2.25-.75z" opacity="0.45"/>
+  </svg>
+);
+
+export default function LandingPage() {
   const router = useRouter();
 
-  const [idImage, setIdImage] = useState<File | null>(null);
-  const [liveImage, setLiveImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cameraReady, setCameraReady] = useState(false);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Start Camera
-  useEffect(() => {
-    const startCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setCameraReady(true);
-        }
-      } catch (err) {
-        setError("Camera access denied. Please allow camera permissions.");
-      }
-    };
-
-    startCamera();
-
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  const stopCamera = () => {
-    const stream = videoRef.current?.srcObject as MediaStream;
-    stream?.getTracks().forEach((track) => track.stop());
-  };
-
-  // Capture Frame from Video
-  const captureLivePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0);
-
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], "live_photo.jpg", {
-          type: "image/jpeg",
-        });
-        setLiveImage(file);
-      }
-    }, "image/jpeg");
-  };
-
-  // Verify Identity
-  const handleVerify = async () => {
-    if (!idImage || !liveImage) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("id_image", idImage);
-      formData.append("live_image", liveImage);
-
-      const res = await fetch("http://localhost:8002/identity/verify", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.detail || "Verification failed");
-      if (!data.verified)
-        throw new Error("Face verification failed. Please retry.");
-
-      stopCamera();
-
-      router.push(`/contact?verification_id=${data.verification_id}`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
+  const rise = {
+    hidden: { opacity: 0, y: 18 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] } },
   };
 
   return (
-    <main className="relative min-h-screen w-full overflow-x-hidden bg-[#000000] font-sans text-slate-200 selection:bg-indigo-500/30">
+    <>
+      {/* Page-scoped overrides only — all shared tokens live in globals.css */}
+      <style>{`
+        .lp-root {
+          height: 100vh; overflow: hidden;
+          background: var(--bg);
+          font-family: var(--font-body);
+          position: relative;
+          display: flex; align-items: center; justify-content: center;
+          padding: 0 24px;
+        }
+        .lp-wrap {
+          position: relative; z-index: 10;
+          max-width: 860px; width: 100%; margin: 0 auto;
+          display: flex; flex-direction: column;
+          align-items: center; gap: 20px;
+          text-align: center;
+        }
+        .lp-logo {
+          font-family: var(--font-display);
+          font-weight: 700;
+          font-style: normal;
+          font-size: clamp(56px, 10vw, 96px);
+          line-height: 1; letter-spacing: -0.03em;
+        }
+        .lp-tagline {
+          font-size: 14px; font-weight: 300;
+          color: var(--text-secondary);
+          letter-spacing: 0.01em;
+        }
+        .lp-console-inner {
+          position: relative;
+          display: flex; flex-direction: column; gap: 20px;
+          padding: 28px 32px;
+        }
+        .lp-cards {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+          perspective: 1200px;
+        }
+        @media(max-width: 560px) { .lp-cards { grid-template-columns: 1fr; } }
 
-      {/* Ambient Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-5%] h-[600px] w-[600px] rounded-full bg-[#0891b2] opacity-20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] h-[600px] w-[600px] rounded-full bg-[#7c3aed] opacity-20 blur-[140px]" />
-      </div>
+        .lp-card {
+          border-radius: 20px; padding: 20px 22px;
+          cursor: pointer;
+          display: flex; align-items: center;
+          justify-content: space-between; gap: 16px;
+        }
+        .lp-card-left {
+          display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;
+        }
+        .lp-card-type {
+          font-family: var(--font-mono);
+          font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+          color: var(--text-muted); margin-bottom: 3px;
+        }
+        .lp-card-title {
+          font-family: var(--font-display);
+          font-weight: 700; font-style: normal;
+          font-size: 22px; line-height: 1.1; letter-spacing: -0.01em;
+          color: var(--text-primary);
+        }
+        .lp-card-arrow {
+          flex-shrink: 0;
+          transition: transform 0.25s ease, color 0.25s ease;
+        }
+        .lp-card-arrow-cyan   { color: rgba(34,211,238,0.45); }
+        .lp-card-arrow-violet { color: rgba(167,139,250,0.45); }
+        .talyn-card-cyan:hover   .lp-card-arrow { transform: translateX(4px); color: var(--cyan); }
+        .talyn-card-violet:hover .lp-card-arrow { transform: translateX(4px); color: var(--violet); }
 
-      <div className="relative z-10 mx-auto max-w-4xl px-6 py-20">
+        .lp-icon-cyan   { color: rgba(34,211,238,0.72); }
+        .lp-icon-violet { color: rgba(167,139,250,0.72); }
+      `}</style>
 
-        {/* Branding Header */}
-        <header className="mb-14 text-center space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-slate-300 backdrop-blur-md"
-          >
-            <Sparkles className="h-3 w-3 text-cyan-400" />
-            <span>AI Hiring Platform</span>
+      <div className="lp-root">
+        {/* Shared ambient glows from globals.css */}
+        <div className="talyn-glow-1" />
+        <div className="talyn-glow-2" />
+
+        <motion.div
+          className="lp-wrap"
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+        >
+
+          {/* Badge */}
+          <motion.div variants={rise}>
+            <span className="talyn-badge">
+              <span className="talyn-badge-dot" />
+              <IcoSparkles />
+              AI Hiring Platform
+            </span>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 sm:text-7xl"
-          >
-            Talyn
-          </motion.h1>
+          {/* Logo */}
+          <motion.div variants={rise} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <h1 className="lp-logo t-logo-gradient">Talyn</h1>
+            <div style={{ width: 80, height: 1, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent)" }} />
+          </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mx-auto max-w-xl text-lg text-slate-400/80 font-light"
-          >
-            Rebuilding Hiring, End to End.
-          </motion.p>
-        </header>
+          {/* Tagline */}
+          <motion.div variants={rise}>
+            <p className="lp-tagline">Rebuilding hiring, end to end.</p>
+          </motion.div>
 
-        {/* Glass Console */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-[2.5rem] border border-white/10 bg-black/40 p-10 shadow-2xl backdrop-blur-[50px]"
-        >
-          <div className="space-y-10">
+          {/* Console */}
+          <motion.div variants={rise} style={{ width: "100%" }}>
+            <div className="talyn-console">
+              <div className="lp-console-inner">
 
-            <h2 className="text-xl font-semibold text-center text-slate-300">
-              Please verify your Identity with a Valid ID to Continue
-            </h2>
-
-            {/* ID Upload */}
-            <div className="space-y-3">
-              <label className="text-sm text-slate-400">
-                Upload Government ID
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setIdImage(e.target.files?.[0] || null)}
-                className="block w-full rounded-xl border border-white/10 bg-black/40 p-3"
-              />
-            </div>
-
-            {/* Live Camera Full Width */}
-            <div className="space-y-4">
-              <label className="text-sm text-slate-400">
-                Live Camera Capture
-              </label>
-
-              <div className="relative rounded-2xl overflow-hidden border border-white/10">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full"
-                />
-              </div>
-
-              <button
-                onClick={captureLivePhoto}
-                disabled={!cameraReady}
-                className="w-full rounded-xl bg-white/10 py-3 hover:bg-white/20 transition disabled:opacity-40"
-              >
-                Capture Photo
-              </button>
-
-              {liveImage && (
-                <p className="text-sm text-emerald-400 text-center">
-                  Live photo captured successfully
-                </p>
-              )}
-
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-
-            {/* Verify Button */}
-            <button
-              onClick={handleVerify}
-              disabled={!idImage || !liveImage || loading}
-              className="w-full rounded-2xl bg-white/10 py-5 text-base font-semibold transition-all duration-300 hover:bg-white/20 disabled:opacity-40"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Verifying...
+                {/* Stats */}
+                <div className="talyn-stats">
+                  {[
+                    { v: "10", u: "×",   l: "Faster Hiring" },
+                    { v: "< 2", u: "min", l: "Results" },
+                  ].map((s, i) => (
+                    <div key={s.l} style={{ display: "contents" }}>
+                      {i > 0 && <div className="talyn-stat-sep" />}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+                          <span className="talyn-stat-val">{s.v}</span>
+                          <span className="talyn-stat-sup">{s.u}</span>
+                        </div>
+                        <span className="talyn-stat-label">{s.l}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-cyan-300" />
-                  Verify & Continue
+
+                {/* Chips */}
+                <div className="talyn-chips">
+                  {["Real-time AI Analysis", "Bias-Free Evaluation", "Structured Scoring"].map(c => (
+                    <span key={c} className="talyn-chip">
+                      <span className="talyn-chip-icon"><IcoSparkles /></span>{c}
+                    </span>
+                  ))}
                 </div>
-              )}
-            </button>
 
-            {error && (
-              <div className="rounded-xl bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
-                {error}
+                <div className="talyn-divider" />
+
+                {/* Role Auth Cards */}
+                <div className="lp-cards">
+                  <TiltCard>
+                    <div
+                      className="lp-card talyn-card talyn-card-cyan"
+                      onClick={() => router.push("/identity")}
+                    >
+                      <div className="lp-card-left">
+                        <div className="talyn-icon-box lp-icon-cyan" style={{ width: 44, height: 44 }}><IcoUser /></div>
+                        <div>
+                          <p className="lp-card-type">Continue as</p>
+                          <h2 className="lp-card-title">Candidate</h2>
+                        </div>
+                      </div>
+                      <div className="lp-card-arrow lp-card-arrow-cyan"><IcoArrow /></div>
+                    </div>
+                  </TiltCard>
+
+                  <TiltCard>
+                    <div
+                      className="lp-card talyn-card talyn-card-violet"
+                      onClick={() => router.push("/hr")}
+                    >
+                      <div className="lp-card-left">
+                        <div className="talyn-icon-box lp-icon-violet" style={{ width: 44, height: 44 }}><IcoBriefcase /></div>
+                        <div>
+                          <p className="lp-card-type">Continue as</p>
+                          <h2 className="lp-card-title">HR Team</h2>
+                        </div>
+                      </div>
+                      <div className="lp-card-arrow lp-card-arrow-violet"><IcoArrow /></div>
+                    </div>
+                  </TiltCard>
+                </div>
+
               </div>
-            )}
+            </div>
+          </motion.div>
 
-          </div>
+          {/* Footer */}
+          <motion.div variants={rise}>
+            <div className="talyn-footer">
+              <div className="talyn-footer-line" />
+              <span className="talyn-footer-text">Built by Priyanka for SWE1904</span>
+              <div className="talyn-footer-line" />
+            </div>
+          </motion.div>
+
         </motion.div>
-
       </div>
-    </main>
+    </>
   );
 }
